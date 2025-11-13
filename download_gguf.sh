@@ -109,19 +109,24 @@ main() {
         exit 1
     fi
 
+    # Convert to array to avoid subshell issues
+    readarray -t file_array <<< "$files"
+    
     # Count files and display
-    file_count=$(echo "$files" | wc -l)
+    file_count=${#file_array[@]}
     print_info "Found $file_count file(s) matching the pattern"
 
-    echo "$files" | while IFS= read -r file; do
-        print_info "  - $file"
+    for file in "${file_array[@]}"; do
+        if [ -n "$file" ]; then
+            print_info "  - $file"
+        fi
     done
 
     # Download files
     downloaded_files=()
     first_file=""
 
-    echo "$files" | while IFS= read -r file; do
+    for file in "${file_array[@]}"; do
         if [ -n "$file" ]; then
             result=$(download_file "$REPO_ID" "$file" "$DEST_DIR")
             if [ $? -eq 0 ]; then
@@ -142,7 +147,7 @@ main() {
         export GGUF_FIRST_FILE="$(basename "$first_file")"
 
         # If multiple files, set additional variable
-        if [ $file_count -gt 1 ]; then
+        if [ ${#downloaded_files[@]} -gt 1 ]; then
             export GGUF_MULTIPLE_FILES="true"
             print_warning "Multiple files downloaded. GGUF_MODEL_PATH set to first file: $(basename "$first_file")"
         else
