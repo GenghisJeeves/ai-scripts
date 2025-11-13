@@ -122,22 +122,52 @@ main() {
         fi
     done
 
-    # Download files
+    # Download files simultaneously
     downloaded_files=()
     first_file=""
+    pids=()
+    temp_dir=$(mktemp -d)
 
-    for file in "${file_array[@]}"; do
+    print_info "Starting simultaneous downloads..."
+
+    # Start all downloads in background
+    for i in "${!file_array[@]}"; do
+        file="${file_array[$i]}"
         if [ -n "$file" ]; then
-            result=$(download_file "$REPO_ID" "$file" "$DEST_DIR")
-            if [ $? -eq 0 ]; then
-                downloaded_files+=("$result")
+            (
+                result=$(download_file "$REPO_ID" "$file" "$DEST_DIR")
+                exit_code=$?
+                echo "$exit_code:$result" > "$temp_dir/result_$i"
+            ) &
+            pids+=($!)
+        fi
+    done
+
+    # Wait for all downloads to complete
+    print_info "Waiting for downloads to complete..."
+    for pid in "${pids[@]}"; do
+        wait $pid
+    done
+
+    # Collect results
+    for i in "${!file_array[@]}"; do
+        if [ -f "$temp_dir/result_$i" ]; then
+            result_line=$(cat "$temp_dir/result_$i")
+            exit_code="${result_line%%:*}"
+            result_path="${result_line#*:}"
+            
+            if [ "$exit_code" -eq 0 ] && [ -n "$result_path" ]; then
+                downloaded_files+=("$result_path")
                 # Set first_file only once
                 if [ -z "$first_file" ]; then
-                    first_file="$result"
+                    first_file="$result_path"
                 fi
             fi
         fi
     done
+
+    # Clean up temporary directory
+    rm -rf "$temp_dir"
 
     # Set environment variables
     if [ -n "$first_file" ]; then
