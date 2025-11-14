@@ -18,6 +18,8 @@
 # Download to specific directory
 # ./download_gguf.sh TheBloke/Llama-2-7B-Chat-GGUF "*.gguf" /path/to/models
 
+set -e  # Exit on any error
+
 # Default values
 REPO_ID="${1:-TheBloke/Llama-2-7B-Chat-GGUF}"
 FILENAME_PATTERN="${2:-*.gguf}"
@@ -76,21 +78,29 @@ download_file() {
     # Create destination directory if it doesn't exist
     mkdir -p "$dest_dir"
 
-    print_info "Downloading: $filename"
+    print_info "Downloading: $filename from $url"
 
     # Download with progress bar if available, otherwise use basic curl
     if command -v wget &> /dev/null; then
-        wget --progress=bar:force -O "$dest_path" "$url" 2>&1
+        if wget --progress=bar:force -O "$dest_path" "$url"; then
+            print_info "Successfully downloaded: $filename"
+            echo "$dest_path"
+            return 0
+        else
+            print_error "Failed to download: $filename"
+            rm -f "$dest_path"  # Clean up partial download
+            return 1
+        fi
     else
-        curl -L -o "$dest_path" "$url"
-    fi
-
-    if [ $? -eq 0 ]; then
-        print_info "Successfully downloaded: $filename"
-        echo "$dest_path"
-    else
-        print_error "Failed to download: $filename"
-        return 1
+        if curl -L -f -o "$dest_path" "$url"; then
+            print_info "Successfully downloaded: $filename"
+            echo "$dest_path"
+            return 0
+        else
+            print_error "Failed to download: $filename"
+            rm -f "$dest_path"  # Clean up partial download
+            return 1
+        fi
     fi
 }
 
@@ -107,17 +117,26 @@ main() {
         exit 1
     fi
 
-    # Convert to array to avoid subshell issues
+    # Convert to array and filter out empty lines
     readarray -t file_array <<< "$files"
+    filtered_files=()
+    for file in "${file_array[@]}"; do
+        if [ -n "$file" ] && [ "$file" != "" ]; then
+            filtered_files+=("$file")
+        fi
+    done
     
     # Count files and display
-    file_count=${#file_array[@]}
+    file_count=${#filtered_files[@]}
+    if [ $file_count -eq 0 ]; then
+        print_error "No valid files found to download"
+        exit 1
+    fi
+    
     print_info "Found $file_count file(s) matching the pattern"
 
-    for file in "${file_array[@]}"; do
-        if [ -n "$file" ]; then
-            print_info "  - $file"
-        fi
+    for file in "${filtered_files[@]}"; do
+        print_info "  - $file from URL: https://huggingface.co/${REPO_ID}/resolve/main/${file}"
     done
 
     # Download files simultaneously
@@ -129,16 +148,15 @@ main() {
     print_info "Starting simultaneous downloads..."
 
     # Start all downloads in background
-    for i in "${!file_array[@]}"; do
-        file="${file_array[$i]}"
-        if [ -n "$file" ]; then
-            (
-                result=$(download_file "$REPO_ID" "$file" "$DEST_DIR")
-                exit_code=$?
-                echo "$exit_code:$result" > "$temp_dir/result_$i"
-            ) &
-            pids+=($!)
-        fi
+    for i in "${!filtered_files[@]}"; do
+        file="${filtered_files[$i]}"
+        (
+            set +e  # Don't exit on error in subshell
+            result=$(download_file "$REPO_ID" "$file" "$DEST_DIR")
+            exit_code=$?
+            echo "$exit_code:$result" > "$temp_dir/result_$i"
+        ) &
+        pids+=($!)
     done
 
     # Wait for all downloads to complete
@@ -148,13 +166,13 @@ main() {
     done
 
     # Collect results
-    for i in "${!file_array[@]}"; do
+    for i in "${!filtered_files[@]}"; do
         if [ -f "$temp_dir/result_$i" ]; then
             result_line=$(cat "$temp_dir/result_$i")
             exit_code="${result_line%%:*}"
             result_path="${result_line#*:}"
             
-            if [ "$exit_code" -eq 0 ] && [ -n "$result_path" ]; then
+            if [ "$exit_code" -eq 0 ] && [ -n "$result_path" ] && [ -f "$result_path" ]; then
                 downloaded_files+=("$result_path")
                 # Set first_file only once
                 if [ -z "$first_file" ]; then
