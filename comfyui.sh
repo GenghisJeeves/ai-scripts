@@ -7,7 +7,7 @@ python3 -m venv ~/comfy
 git clone https://github.com/comfyanonymous/ComfyUI.git
 
 # Install GPU appropriate packages
-if [[ $(lshw -C display 2>/dev/null | grep -i vendor) =~ [Nn][Vv][Ii][Dd][Ii][Aa] ]]; then
+if [[ $(lshw -C display 2>/dev/null | grep -i vendor | grep -oi 'Nvidia') =~ [Nn][Vv][Ii][Dd][Ii][Aa] ]]; then
     echo "NVIDIA GPU detected, downloading CUDA version..."
     ~/comfy/bin/pip install pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu130
 else
