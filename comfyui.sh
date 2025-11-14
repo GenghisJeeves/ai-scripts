@@ -9,7 +9,7 @@ git clone https://github.com/comfyanonymous/ComfyUI.git
 # Install GPU appropriate packages
 if [[ $(lshw -C display 2>/dev/null | grep -i vendor | grep -oi 'Nvidia') =~ [Nn][Vv][Ii][Dd][Ii][Aa] ]]; then
     echo "NVIDIA GPU detected, downloading CUDA version..."
-    ~/comfy/bin/pip install pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu130
+    ~/comfy/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu130
 else
     echo "No NVIDIA GPU detected, downloading non-CUDA version..."
     ~/comfy/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
