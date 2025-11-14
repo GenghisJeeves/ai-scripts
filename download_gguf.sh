@@ -18,8 +18,6 @@
 # Download to specific directory
 # ./download_gguf.sh TheBloke/Llama-2-7B-Chat-GGUF "*.gguf" /path/to/models
 
-set -e  # Exit on any error
-
 # Default values
 REPO_ID="${1:-TheBloke/Llama-2-7B-Chat-GGUF}"
 FILENAME_PATTERN="${2:-*.gguf}"
