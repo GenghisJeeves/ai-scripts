@@ -18,5 +18,5 @@ fi
 chmod +x ~/koboldcpp
 ~/ai-scripts/download_gguf.sh $GGUF_REPOSITORY "*$GGUF_QUANT*.gguf" ~/
 wait
-~/koboldcpp --model $GGUF_MODEL_DIR/$GGUF_MODEL_PATH --context_size $GGUF_CONTEXT --gpulayers 999 &
+~/koboldcpp --model $GGUF_MODEL_DIR/$GGUF_MODEL_PATH --contextsize $GGUF_CONTEXT --gpulayers 999 &
 
