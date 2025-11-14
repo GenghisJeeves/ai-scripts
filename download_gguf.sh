@@ -49,7 +49,7 @@ get_file_list() {
     local repo_id="$1"
     local api_url="https://huggingface.co/api/models/${repo_id}"
 
-    print_info "Fetching file list from ${repo_id}..."
+    #print_info "Fetching file list from ${repo_id}..."
 
     # Use curl to get the model info and extract GGUF files matching the pattern
     file_list=$(curl -s "$api_url" | \
@@ -63,7 +63,7 @@ get_file_list() {
         return 1
     fi
 
-    echo -e "The following files are found: \n$file_list"
+    #echo -e "The following files are found: \n$file_list"
 }
 
 # Function to download a single file
@@ -81,7 +81,7 @@ download_file() {
     print_info "Downloading: $filename from $url"
 
     # Download with progress bar
-    if wget --progress=bar:force -O "$dest_path" "$url"; then
+    if wget -O "$dest_path" "$url"; then
         print_info "Successfully downloaded: $filename"
         echo "$dest_path"
         return 0
