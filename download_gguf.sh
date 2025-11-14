@@ -63,7 +63,7 @@ get_file_list() {
         return 1
     fi
 
-    echo "$file_list"
+    echo -e "The following files are found: \n$file_list"
 }
 
 # Function to download a single file
@@ -80,27 +80,15 @@ download_file() {
 
     print_info "Downloading: $filename from $url"
 
-    # Download with progress bar if available, otherwise use basic curl
-    if command -v wget &> /dev/null; then
-        if wget --progress=bar:force -O "$dest_path" "$url"; then
-            print_info "Successfully downloaded: $filename"
-            echo "$dest_path"
-            return 0
-        else
-            print_error "Failed to download: $filename"
-            rm -f "$dest_path"  # Clean up partial download
-            return 1
-        fi
+    # Download with progress bar
+    if wget --progress=bar:force -O "$dest_path" "$url"; then
+        print_info "Successfully downloaded: $filename"
+        echo "$dest_path"
+        return 0
     else
-        if curl -L -f -o "$dest_path" "$url"; then
-            print_info "Successfully downloaded: $filename"
-            echo "$dest_path"
-            return 0
-        else
-            print_error "Failed to download: $filename"
-            rm -f "$dest_path"  # Clean up partial download
-            return 1
-        fi
+        print_error "Failed to download: $filename"
+        rm -f "$dest_path"  # Clean up partial download
+        return 1
     fi
 }
 
@@ -114,6 +102,7 @@ main() {
     # Get list of files to download
     files=$(get_file_list "$REPO_ID")
     if [ $? -ne 0 ]; then
+        print_error "Failed to retrieve file list from repository. Exiting."
         exit 1
     fi
 
@@ -130,6 +119,7 @@ main() {
     file_count=${#filtered_files[@]}
     if [ $file_count -eq 0 ]; then
         print_error "No valid files found to download"
+        print_error "Script cannot continue without files to download. Exiting."
         exit 1
     fi
     
@@ -220,6 +210,7 @@ EOF
 
     else
         print_error "No files were successfully downloaded"
+        print_error "All download attempts failed. Check network connection and repository access. Exiting."
         exit 1
     fi
 

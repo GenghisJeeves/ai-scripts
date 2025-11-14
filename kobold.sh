@@ -5,7 +5,7 @@
 cd ~/
 python3 -m venv ~/kobold
 # Install GPU appropriate packages
-if [[ $(lshw -C display 2>/dev/null | grep -i vendor) =~ [Nn][Vv][Ii][Dd][Ii][Aa] ]]; then
+if [[ $(lshw -C display 2>/dev/null | grep -i vendor | grep -oi 'Nvidia') =~ [Nn][Vv][Ii][Dd][Ii][Aa] ]]; then
     echo "NVIDIA GPU detected, downloading CUDA version..."
     wget -nv https://github.com/LostRuins/koboldcpp/releases/latest/download/koboldcpp-linux-x64 && mv koboldcpp-linux-x64 koboldcpp &
     ~/kobold/bin/pip install pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu130 &
@@ -15,5 +15,8 @@ else
     ~/kobold/venv/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4 &
 fi
 
-ai-scripts/download_gguf.sh $GGUF_REPOSITORY "*$GGUF_QUANT*.gguf" ~/
+chmod +x ~/koboldcpp
+~/ai-scripts/download_gguf.sh $GGUF_REPOSITORY "*$GGUF_QUANT*.gguf" ~/
+wait
+~/koboldcpp --model $GGUF_MODEL_DIR/$GGUF_MODEL_PATH --context_size $GGUF_CONTEXT --gpulayers 999 &
 
