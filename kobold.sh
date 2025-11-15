@@ -17,6 +17,7 @@ fi
 
 
 ~/ai-scripts/download_gguf.sh $GGUF_REPOSITORY "*$GGUF_QUANT*.gguf" ~/
+source ~/gguf_vars.sh
 wait
 chmod +x ~/koboldcpp
 ~/koboldcpp --model $GGUF_MODEL_DIR/$GGUF_MODEL_PATH --contextsize $GGUF_CONTEXT --gpulayers $GGUF_GPU_LAYERS &

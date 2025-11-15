@@ -152,6 +152,7 @@ export GGUF_FIRST_FILE="$GGUF_FIRST_FILE"
 export GGUF_MULTIPLE_FILES="$GGUF_MULTIPLE_FILES"
 EOF
 
+        chmod +x "${DEST_DIR}/gguf_vars.sh"
         print_info "Variables also saved to: ${DEST_DIR}/gguf_vars.sh"
         print_info "To use in another shell, run: source ${DEST_DIR}/gguf_vars.sh"
         print_info "Download process completed!"
