@@ -15,8 +15,9 @@ else
     ~/kobold/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4 &
 fi
 
-chmod +x ~/koboldcpp
+
 ~/ai-scripts/download_gguf.sh $GGUF_REPOSITORY "*$GGUF_QUANT*.gguf" ~/
 wait
+chmod +x ~/koboldcpp
 ~/koboldcpp --model $GGUF_MODEL_DIR/$GGUF_MODEL_PATH --contextsize $GGUF_CONTEXT --gpulayers 999 &
 

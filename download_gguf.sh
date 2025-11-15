@@ -64,32 +64,7 @@ get_file_list() {
     fi
 
     #echo -e "The following files are found: \n$file_list"
-}
-
-# Function to download a single file
-download_file() {
-    local repo_id="$1"
-    local filename="$2"
-    local dest_dir="$3"
-
-    local url="https://huggingface.co/${repo_id}/resolve/main/${filename}"
-    local dest_path="${dest_dir}/${filename}"
-
-    # Create destination directory if it doesn't exist
-    mkdir -p "$dest_dir"
-
-    print_info "Downloading: $filename from $url"
-
-    # Download with progress bar
-    if wget -O "$dest_path" "$url"; then
-        print_info "Successfully downloaded: $filename"
-        echo "$dest_path"
-        return 0
-    else
-        print_error "Failed to download: $filename"
-        rm -f "$dest_path"  # Clean up partial download
-        return 1
-    fi
+    echo "$file_list"
 }
 
 # Main execution
@@ -127,55 +102,27 @@ main() {
 
     for file in "${filtered_files[@]}"; do
         print_info "  - $file from URL: https://huggingface.co/${REPO_ID}/resolve/main/${file}"
-    done
-
-    # Download files simultaneously
-    downloaded_files=()
-    first_file=""
-    pids=()
-    temp_dir=$(mktemp -d)
-
-    print_info "Starting simultaneous downloads..."
-
-    # Start all downloads in background
-    for i in "${!filtered_files[@]}"; do
-        file="${filtered_files[$i]}"
-        (
-            set +e  # Don't exit on error in subshell
-            result=$(download_file "$REPO_ID" "$file" "$DEST_DIR")
-            exit_code=$?
-            echo "$exit_code:$result" > "$temp_dir/result_$i"
-        ) &
-        pids+=($!)
+        wget -nv -P "$DEST_DIR" "https://huggingface.co/${REPO_ID}/resolve/main/${file}" &
     done
 
     # Wait for all downloads to complete
     print_info "Waiting for downloads to complete..."
-    for pid in "${pids[@]}"; do
-        wait $pid
-    done
+    wait
 
-    # Collect results
-    for i in "${!filtered_files[@]}"; do
-        if [ -f "$temp_dir/result_$i" ]; then
-            result_line=$(cat "$temp_dir/result_$i")
-            exit_code="${result_line%%:*}"
-            result_path="${result_line#*:}"
-            
-            if [ "$exit_code" -eq 0 ] && [ -n "$result_path" ] && [ -f "$result_path" ]; then
-                downloaded_files+=("$result_path")
-                # Set first_file only once
-                if [ -z "$first_file" ]; then
-                    first_file="$result_path"
-                fi
+    # Find the first downloaded file and set environment variables
+    first_file=""
+    downloaded_files=()
+    
+    for file in "${filtered_files[@]}"; do
+        full_path="$DEST_DIR/$(basename "$file")"
+        if [ -f "$full_path" ]; then
+            downloaded_files+=("$full_path")
+            if [ -z "$first_file" ]; then
+                first_file="$full_path"
             fi
         fi
     done
 
-    # Clean up temporary directory
-    rm -rf "$temp_dir"
-
-    # Set environment variables
     if [ -n "$first_file" ]; then
         # Export variables for current shell and subprocesses
         export GGUF_MODEL_PATH="$first_file"
@@ -207,15 +154,12 @@ EOF
 
         print_info "Variables also saved to: ${DEST_DIR}/gguf_vars.sh"
         print_info "To use in another shell, run: source ${DEST_DIR}/gguf_vars.sh"
-
+        print_info "Download process completed!"
     else
         print_error "No files were successfully downloaded"
         print_error "All download attempts failed. Check network connection and repository access. Exiting."
         exit 1
     fi
-
-    print_info "Download process completed!"
 }
 
-# Run main function
 main "$@"
