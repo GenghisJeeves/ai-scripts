@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # SPDX-License-Identifier: EUPL-1.2
 # Copyright © 2025 AW6
 
